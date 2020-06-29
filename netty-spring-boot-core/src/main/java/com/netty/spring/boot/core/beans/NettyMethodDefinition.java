@@ -36,5 +36,57 @@ public class NettyMethodDefinition {
      */
     private Class returnClass;
 
+    /**
+     * 当前方法所处类的bean的名称
+     */
+    private String beanName;
 
+
+    public String getBeanName() {
+        return beanName;
+    }
+
+    public void setBeanName(String beanName) {
+        this.beanName = beanName;
+    }
+
+    public Method getMethod() {
+        return method;
+    }
+
+    public void setMethod(Method method) {
+        this.method = method;
+    }
+
+    public String getMethodName() {
+        return methodName;
+    }
+
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
+    }
+
+    public List<Annotation> getMethodAnnotation() {
+        return methodAnnotation;
+    }
+
+    public void setMethodAnnotation(List<Annotation> methodAnnotation) {
+        this.methodAnnotation = methodAnnotation;
+    }
+
+    public Class[] getParameterTypesClass() {
+        return parameterTypesClass;
+    }
+
+    public void setParameterTypesClass(Class[] parameterTypesClass) {
+        this.parameterTypesClass = parameterTypesClass;
+    }
+
+    public Class getReturnClass() {
+        return returnClass;
+    }
+
+    public void setReturnClass(Class returnClass) {
+        this.returnClass = returnClass;
+    }
 }

@@ -24,11 +24,68 @@ public class NettyBeanDefinition {
     /**
      * 类上的注解
      */
-    private List<Annotation> classAnnotation;
+    private Annotation[] classAnnotation;
 
     /**
      * 方法名称作为key，方法的信息作为value进行保存
      */
-    private Map<String,NettyMethodDefinition> methodMap;
+    private Map<String, NettyMethodDefinition> methodMap;
 
+    /**
+     * 类上的属性名称未做KEY，属性的信息作为value进行保存
+     */
+    private Map<String, NettyFieldDefinition> fieldMap;
+
+    /**
+     * 类上的响应的注解的路径
+     */
+    private String mappingPath;
+
+    public String getMappingPath() {
+        return mappingPath;
+    }
+
+    public void setMappingPath(String mappingPath) {
+        this.mappingPath = mappingPath;
+    }
+
+    public Object getObject() {
+        return object;
+    }
+
+    public void setObject(Object object) {
+        this.object = object;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public Annotation[] getClassAnnotation() {
+        return classAnnotation;
+    }
+
+    public void setClassAnnotation(Annotation[] classAnnotation) {
+        this.classAnnotation = classAnnotation;
+    }
+
+    public Map<String, NettyMethodDefinition> getMethodMap() {
+        return methodMap;
+    }
+
+    public void setMethodMap(Map<String, NettyMethodDefinition> methodMap) {
+        this.methodMap = methodMap;
+    }
+
+    public Map<String, NettyFieldDefinition> getFieldMap() {
+        return fieldMap;
+    }
+
+    public void setFieldMap(Map<String, NettyFieldDefinition> fieldMap) {
+        this.fieldMap = fieldMap;
+    }
 }

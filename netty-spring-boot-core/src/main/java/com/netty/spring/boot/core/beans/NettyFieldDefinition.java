@@ -2,7 +2,6 @@ package com.netty.spring.boot.core.beans;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.List;
 
 /**
  * @author linzf
@@ -24,11 +23,42 @@ public class NettyFieldDefinition {
     /**
      * 属性上的注解
      */
-    private List<Annotation> fieldAnnotation;
+    private Annotation[] fieldAnnotation;
 
     /**
      * 属性类型
      */
-    private String fieldType;
+    private Class fieldType;
 
+    public Field getF() {
+        return f;
+    }
+
+    public void setF(Field f) {
+        this.f = f;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public Annotation[] getFieldAnnotation() {
+        return fieldAnnotation;
+    }
+
+    public void setFieldAnnotation(Annotation[] fieldAnnotation) {
+        this.fieldAnnotation = fieldAnnotation;
+    }
+
+    public Class getFieldType() {
+        return fieldType;
+    }
+
+    public void setFieldType(Class fieldType) {
+        this.fieldType = fieldType;
+    }
 }
