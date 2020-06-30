@@ -24,7 +24,7 @@ public class NettyMethodDefinition {
     /**
      * 方法上的注解
      */
-     private List<Annotation> methodAnnotation;
+    private Annotation[] methodAnnotation;
 
     /**
      * 方法上的请求的入参
@@ -66,11 +66,11 @@ public class NettyMethodDefinition {
         this.methodName = methodName;
     }
 
-    public List<Annotation> getMethodAnnotation() {
+    public Annotation[] getMethodAnnotation() {
         return methodAnnotation;
     }
 
-    public void setMethodAnnotation(List<Annotation> methodAnnotation) {
+    public void setMethodAnnotation(Annotation[] methodAnnotation) {
         this.methodAnnotation = methodAnnotation;
     }
 

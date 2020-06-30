@@ -8,10 +8,10 @@
         <version>2.3.1.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.netty.spring.boot</groupId>
-    <artifactId>netty-spring-boot-core</artifactId>
+    <groupId>com.netty.spring.boot.demo</groupId>
+    <artifactId>netty-spring-boot-demo</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>netty-spring-boot-core</name>
+    <name>netty-spring-boot-demo</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
@@ -25,17 +25,9 @@
         </dependency>
 
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId> <!-- Use 'netty-all' for 4.0 or above -->
-            <version>4.1.32.Final</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.11.0</version>
-            <scope>compile</scope>
+            <groupId>com.netty.spring.boot</groupId>
+            <artifactId>netty-spring-boot-core</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -54,13 +46,8 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

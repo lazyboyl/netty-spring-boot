@@ -39,13 +39,13 @@ public class NettyBeanDefinition {
     /**
      * 类上的响应的注解的路径
      */
-    private String mappingPath;
+    private String [] mappingPath;
 
-    public String getMappingPath() {
+    public String[] getMappingPath() {
         return mappingPath;
     }
 
-    public void setMappingPath(String mappingPath) {
+    public void setMappingPath(String[] mappingPath) {
         this.mappingPath = mappingPath;
     }
 
