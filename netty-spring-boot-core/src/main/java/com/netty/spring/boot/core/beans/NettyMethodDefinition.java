@@ -2,6 +2,7 @@ package com.netty.spring.boot.core.beans;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.List;
 
 /**
@@ -17,6 +18,19 @@ public class NettyMethodDefinition {
     private Method method;
 
     /**
+     * 方法调用的请求方式：
+     * GET,
+     * HEAD,
+     * POST,
+     * PUT,
+     * PATCH,
+     * DELETE,
+     * OPTIONS,
+     * TRACE;
+     */
+    private String nettyRequestMethod;
+
+    /**
      * 方法名称
      */
     private String methodName;
@@ -27,9 +41,14 @@ public class NettyMethodDefinition {
     private Annotation[] methodAnnotation;
 
     /**
-     * 方法上的请求的入参
+     * 方法上的请求的入参类型
      */
     private Class[] parameterTypesClass;
+
+    /**
+     * 方法上的请求的入参名称
+     */
+    private Parameter[] parameters;
 
     /**
      * 方法调用返回的class
@@ -41,6 +60,21 @@ public class NettyMethodDefinition {
      */
     private String beanName;
 
+    public Parameter[] getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(Parameter[] parameters) {
+        this.parameters = parameters;
+    }
+
+    public String getNettyRequestMethod() {
+        return nettyRequestMethod;
+    }
+
+    public void setNettyRequestMethod(String nettyRequestMethod) {
+        this.nettyRequestMethod = nettyRequestMethod;
+    }
 
     public String getBeanName() {
         return beanName;

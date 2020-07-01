@@ -5,6 +5,7 @@ import com.netty.spring.boot.core.factory.NettyDefaultListableBeanFactory;
 import com.netty.spring.boot.core.util.NettyScanner;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -37,6 +38,7 @@ public class NettyServer {
         ServerBootstrap bootstrap = new ServerBootstrap();
         EventLoopGroup boss = new NioEventLoopGroup(50);
         EventLoopGroup work = new NioEventLoopGroup(100);
+        bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
         bootstrap.group(boss, work)
                 .handler(new LoggingHandler(String.valueOf(LogLevel.DEBUG)))
                 .channel(NioServerSocketChannel.class)

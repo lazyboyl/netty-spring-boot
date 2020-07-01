@@ -1,6 +1,7 @@
 package com.netty.spring.boot.core.factory;
 
 import com.netty.spring.boot.core.annotation.NettyRequestMapping;
+import com.netty.spring.boot.core.annotation.NettyRequestMethod;
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyFieldDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
@@ -49,7 +50,23 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
      */
     private final Set<String> nettyFieldDefinitionSet = new LinkedHashSet<>();
 
-    public NettyMethodDefinition getNettyMethodDefinition(String uri){
+    /**
+     * 功能描述： 根据bean的名称来获取bean信息
+     *
+     * @param name bean的全称
+     * @return
+     */
+    public NettyBeanDefinition getNettyBeanDefinition(String name) {
+        return nettyBeanDefinitionMap.get(name);
+    }
+
+    /**
+     * 功能描述： 根据uri来获取响应的method
+     *
+     * @param uri 响应地址
+     * @return
+     */
+    public NettyMethodDefinition getNettyMethodDefinition(String uri) {
         return nettyMethodDefinitionMap.get(uri);
     }
 
@@ -84,7 +101,7 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
         // 实例化类
         nettyBeanDefinition.setObject(o);
         nettyBeanDefinitionSet.add(c.getName());
-        nettyBeanDefinitionMap.put(c.getName(),nettyBeanDefinition);
+        nettyBeanDefinitionMap.put(c.getName(), nettyBeanDefinition);
     }
 
     /**
@@ -128,6 +145,7 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
             nettyMethodDefinition.setReturnClass(m.getReturnType());
             nettyMethodDefinition.setMethodName(m.getName());
             nettyMethodDefinition.setBeanName(c.getName());
+            nettyMethodDefinition.setParameters(m.getParameters());
             methodMap.put(c.getName() + "." + m.getName(), nettyMethodDefinition);
             NettyRequestMapping a = m.getAnnotation(NettyRequestMapping.class);
             if (a == null) {
@@ -147,6 +165,12 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
      * @param nettyBeanDefinition
      */
     protected void parseNettyRequestMapping(Class c, NettyMethodDefinition nettyMethodDefinition, NettyRequestMapping a, NettyBeanDefinition nettyBeanDefinition) {
+        NettyRequestMethod[] nettyRequestMethods = a.method();
+        if (nettyRequestMethods.length > 0) {
+            nettyMethodDefinition.setNettyRequestMethod(nettyRequestMethods[0].name());
+        } else {
+            nettyMethodDefinition.setNettyRequestMethod("");
+        }
         String[] value = a.value();
         String[] path = a.path();
         if (value.length > 0 && path.length > 0) {
