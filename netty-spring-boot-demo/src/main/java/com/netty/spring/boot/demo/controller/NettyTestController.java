@@ -34,7 +34,8 @@ public class NettyTestController {
     }
 
     @NettyRequestMapping(path = "nTest2",  method = NettyRequestMethod.GET)
-    public Map<String,Object> nTest2(String abc) {
+    public Map<String,Object> nTest2(String abc) throws InterruptedException {
+        Thread.sleep(5000);
         System.out.println("----" + abc);
         Map<String,Object> m = new HashMap<>();
         m.put("asasa",abc);

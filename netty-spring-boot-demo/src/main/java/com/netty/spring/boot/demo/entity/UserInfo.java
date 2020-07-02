@@ -1,6 +1,7 @@
 package com.netty.spring.boot.demo.entity;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author linzf
@@ -14,6 +15,16 @@ public class UserInfo {
     private Integer age;
 
     private Date birth;
+
+    private List<RoleInfo> roleInfoList;
+
+    public List<RoleInfo> getRoleInfoList() {
+        return roleInfoList;
+    }
+
+    public void setRoleInfoList(List<RoleInfo> roleInfoList) {
+        this.roleInfoList = roleInfoList;
+    }
 
     public String getName() {
         return name;

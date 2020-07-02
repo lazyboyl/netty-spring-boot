@@ -185,7 +185,7 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
         }
         parseUrl(actionPath);
         String[] mappingPath = nettyBeanDefinition.getMappingPath();
-        if (mappingPath.length > 0) {
+        if (mappingPath !=null && mappingPath.length > 0) {
             parseUrl(mappingPath);
             for (String s : mappingPath) {
                 for (String p : actionPath) {
@@ -198,11 +198,11 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
             }
         } else {
             for (String p : actionPath) {
-                if (methodIsInit("/" + p)) {
+                if (methodIsInit(p)) {
                     throw new RuntimeException(c.getName() + "类的" + nettyMethodDefinition.getMethod().getName() + "方法上存在重复定义的响应地址！");
                 }
-                nettyMethodDefinitionSet.add("/" + p);
-                nettyMethodDefinitionMap.put("/" + p, nettyMethodDefinition);
+                nettyMethodDefinitionSet.add(p);
+                nettyMethodDefinitionMap.put(p, nettyMethodDefinition);
             }
         }
     }

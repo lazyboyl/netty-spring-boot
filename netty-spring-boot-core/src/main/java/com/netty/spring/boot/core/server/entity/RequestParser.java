@@ -1,4 +1,4 @@
-package com.netty.spring.boot.core.beans;
+package com.netty.spring.boot.core.server.entity;
 
 import com.netty.spring.boot.core.constant.ContentType;
 import com.netty.spring.boot.core.util.JsonUtils;

@@ -1,9 +1,14 @@
 package com.netty.spring.boot.core.server;
 
+import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
+import com.netty.spring.boot.core.server.entity.NettyFile;
+import com.netty.spring.boot.core.server.entity.NettyGeneralResponse;
 import com.netty.spring.boot.core.util.JsonUtils;
+import com.netty.spring.boot.core.util.NettyResponseUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
@@ -12,7 +17,8 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 
 import java.io.*;
-import java.nio.channels.FileChannel;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,22 +34,22 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
     }
 
     private static final HttpDataFactory factory = new DefaultHttpDataFactory(true);
-    private static final String FILE_UPLOAD = "D:/";
-    private static final String URI = "/upload";
     private HttpPostRequestDecoder httpDecoder;
-    HttpRequest request;
+    private HttpRequest request;
+    private NettyMethodDefinition nettyMethodDefinition;
+    private NettyBeanDefinition nettyBeanDefinition;
+    private HttpHeaders headers;
 
     @Override
     protected void channelRead0(final ChannelHandlerContext ctx, final HttpObject httpObject)
             throws Exception {
         if (httpObject instanceof HttpRequest) {
             request = (HttpRequest) httpObject;
-            if (request.uri().startsWith(URI) && request.method().equals(HttpMethod.POST)) {
+            // 前置处理
+            doNettyUploadBefore(request, ctx);
+            if (nettyMethodDefinition != null && nettyBeanDefinition != null) {
                 httpDecoder = new HttpPostRequestDecoder(factory, request);
                 httpDecoder.setDiscardThreshold(0);
-            } else {
-                //传递给下一个Handler
-                ctx.fireChannelRead(httpObject);
             }
         }
         if (httpObject instanceof HttpContent) {
@@ -64,29 +70,80 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     }
 
-    private void writeChunk(ChannelHandlerContext ctx) throws IOException {
-        while (httpDecoder.hasNext()) {
-            InterfaceHttpData data = httpDecoder.next();
-            if (data != null && InterfaceHttpData.HttpDataType.FileUpload.equals(data.getHttpDataType())) {
-                final FileUpload fileUpload = (FileUpload) data;
-                final File file = new File(FILE_UPLOAD + fileUpload.getFilename());
-                try (FileChannel inputChannel = new FileInputStream(fileUpload.getFile()).getChannel();
-                     FileChannel outputChannel = new FileOutputStream(file).getChannel()) {
-                    outputChannel.transferFrom(inputChannel, 0, inputChannel.size());
-                    Map<String, String> resMap = new HashMap<>();
-                    resMap.put("method", "req.method().name()");
-                    resMap.put("uri", "uri");
-                    // 创建http响应
-                    FullHttpResponse response = new DefaultFullHttpResponse(
-                            HttpVersion.HTTP_1_1,
-                            HttpResponseStatus.OK,
-                            Unpooled.copiedBuffer(JsonUtils.objToJson(resMap), CharsetUtil.UTF_8));
-                    // 设置头信息
-                    response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
-                    ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+    /**
+     * 功能描述： 调用上传文件接口的时候的前置处理
+     *
+     * @param httpObject
+     * @param ctx
+     */
+    protected void doNettyUploadBefore(HttpObject httpObject, ChannelHandlerContext ctx) {
+        request = (HttpRequest) httpObject;
+        headers = request.headers();
+        String uri = request.uri().split("\\?")[0];
+        // 根据uri获取相应的method的对象
+        nettyMethodDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
+        if (nettyMethodDefinition == null) {
+            NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
+        } else {
+            if (!"".equals(nettyMethodDefinition.getNettyRequestMethod()) && !request.method().name().equals(nettyMethodDefinition.getNettyRequestMethod())) {
+                NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.METHOD_NOT_ALLOWED.code(), "请求方式错误！"), HttpResponseStatus.NOT_FOUND);
+            } else {
+                nettyBeanDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyBeanDefinition(nettyMethodDefinition.getBeanName());
+                if (nettyBeanDefinition == null) {
+                    NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                 }
             }
         }
+    }
+
+    /**
+     * 功能描述： 当文件上传成功以后响应当前的方法
+     *
+     * @param ctx
+     * @throws IOException
+     */
+    private void writeChunk(ChannelHandlerContext ctx)  {
+        FileUpload fileUpload = null;
+        if (httpDecoder.hasNext()) {
+            InterfaceHttpData data = httpDecoder.next();
+            if (data != null && InterfaceHttpData.HttpDataType.FileUpload.equals(data.getHttpDataType())) {
+                fileUpload = (FileUpload) data;
+            }
+        }
+        if (nettyMethodDefinition != null && nettyBeanDefinition != null) {
+            Parameter[] ps = nettyMethodDefinition.getParameters();
+            Class[] parameterTypesClass = nettyMethodDefinition.getParameterTypesClass();
+            Object[] obj = new Object[ps.length];
+            NettyFile nettyFile = new NettyFile(fileUpload, headers);
+            Map<String, Object> paramMap = new HashMap<>();
+            headers.entries().forEach(e -> {
+                paramMap.put(e.getKey(),e.getValue());
+            });
+            for (int i = 0; i < ps.length; i++) {
+                Parameter p = ps[i];
+                if (parameterTypesClass[i].equals(NettyFile.class)) {
+                    obj[i] = nettyFile;
+                } else {
+                    if (isMyClass(parameterTypesClass[i])) {
+                        obj[i] = paramMap.get(p.getName());
+                    } else {
+                        obj[i] = JsonUtils.map2object(paramMap, parameterTypesClass[i]);
+                    }
+                }
+            }
+            Object object = null;
+            try {
+                object = nettyMethodDefinition.getMethod().invoke(nettyBeanDefinition.getObject(), obj);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+            NettyResponseUtil.write(ctx, object, HttpResponseStatus.OK);
+        } else {
+            NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
+        }
+
     }
 
 
@@ -99,6 +156,21 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (httpDecoder != null) {
             httpDecoder.cleanFiles();
+        }
+    }
+
+
+    /**
+     * 功能描述： 判断当前的class是否是自己定义的class
+     *
+     * @param s 需要判断的class对象
+     * @return true: JDK本身的类；false：自己定义的类
+     */
+    protected Boolean isMyClass(Class s) {
+        if (s.getClassLoader() == null) {
+            return true;
+        } else {
+            return false;
         }
     }
 
