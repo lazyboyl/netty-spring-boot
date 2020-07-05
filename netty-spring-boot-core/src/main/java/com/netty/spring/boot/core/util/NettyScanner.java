@@ -19,22 +19,25 @@ import java.util.jar.JarFile;
  */
 public class NettyScanner {
 
+    /**
+     * 定义被扫描的类的集合
+     */
+    private Set<Class<?>> classes = new HashSet<>(256);
+
 
     /**
      * 功能描述： 找到被某个注解所注解的类
      *
-     * @param packageName     需要扫描的包的路径
      * @param annotationClass 注解类
      * @param <A>
      * @return
      * @throws Exception
      */
-    public <A extends Annotation> Set<Class<?>> getAnnotationClasses(String packageName, Class<A> annotationClass) throws Exception {
+    public <A extends Annotation> Set<Class<?>> getAnnotationClasses(Class<A> annotationClass) throws Exception {
         //找用了annotationClass注解的类
         Set<Class<?>> controllers = new HashSet<>();
-        Set<Class<?>> clsList = getClasses(packageName);
-        if (clsList != null && clsList.size() > 0) {
-            for (Class<?> cls : clsList) {
+        if (classes != null && classes.size() > 0) {
+            for (Class<?> cls : classes) {
                 if (cls.getAnnotation(annotationClass) != null) {
                     controllers.add(cls);
                 }
@@ -49,8 +52,7 @@ public class NettyScanner {
      * @param packageName 需要扫描的包的名称
      * @return 返回扫描成功的类
      */
-    protected Set<Class<?>> getClasses(String packageName) {
-        Set<Class<?>> classes = new HashSet<>();
+    public Set<Class<?>> initClasses(String packageName) {
         // 获取包的名字 并进行替换
         String packageDirName = packageName.replace('.', '/');
         // 定义一个枚举的集合 并进行循环来处理这个目录下的things

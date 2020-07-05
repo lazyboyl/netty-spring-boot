@@ -57,8 +57,9 @@ public class NettyServer {
         NettyScanner nettyScanner = new NettyScanner();
         Set<Class<?>> classes = new LinkedHashSet();
         for (String pack : nettyScanPackage) {
-            classes.addAll(nettyScanner.getAnnotationClasses(pack, NettyController.class));
+            nettyScanner.initClasses(pack);
         }
+        classes.addAll(nettyScanner.getAnnotationClasses(NettyController.class));
         nettyDefaultListableBeanFactory = new NettyDefaultListableBeanFactory();
         for(Class c:classes){
             nettyDefaultListableBeanFactory.registerBean(c);
