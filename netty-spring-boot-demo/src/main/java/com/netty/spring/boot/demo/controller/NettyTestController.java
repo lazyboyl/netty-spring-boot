@@ -4,6 +4,7 @@ import com.netty.spring.boot.core.annotation.NettyController;
 import com.netty.spring.boot.core.annotation.NettyRequestMapping;
 import com.netty.spring.boot.core.annotation.NettyRequestMethod;
 import com.netty.spring.boot.demo.entity.UserInfo;
+import io.netty.handler.codec.http.HttpHeaders;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,6 @@ public class NettyTestController {
 
     @NettyRequestMapping(path = "nTest2",  method = NettyRequestMethod.GET)
     public Map<String,Object> nTest2(String abc) throws InterruptedException {
-        Thread.sleep(5000);
         System.out.println("----" + abc);
         Map<String,Object> m = new HashMap<>();
         m.put("asasa",abc);
@@ -43,8 +43,8 @@ public class NettyTestController {
     }
 
     @NettyRequestMapping(path = "nTest3",  method = NettyRequestMethod.POST)
-    public Map<String,Object> nTest3(String abc) {
-        System.out.println("----" + abc);
+    public Map<String,Object> nTest3(String abc, HttpHeaders headers) {
+        System.out.println("----" + abc + "+++headers++" + headers);
         Map<String,Object> m = new HashMap<>();
         m.put("asasa",abc);
         return m;

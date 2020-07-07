@@ -59,6 +59,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         Map<String, Object> paramMap = null;
         try {
             paramMap = new RequestParser(req).parse();
+            paramMap.put("headers",req.headers());
             // 根据uri获取相应的method的对象
             NettyMethodDefinition nettyMethodDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
             if (nettyMethodDefinition == null) {
@@ -109,7 +110,11 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                 if (isMyClass(parameterTypesClass[i])) {
                     obj[i] = paramMap.get(p.getName());
                 } else {
-                    obj[i] = JsonUtils.map2object(paramMap, parameterTypesClass[i]);
+                    if(parameterTypesClass[i].getName().equals(HttpHeaders.class.getName())){
+                        obj[i] = paramMap.get("headers");
+                    } else {
+                        obj[i] = JsonUtils.map2object(paramMap, parameterTypesClass[i]);
+                    }
                 }
             }
             try {

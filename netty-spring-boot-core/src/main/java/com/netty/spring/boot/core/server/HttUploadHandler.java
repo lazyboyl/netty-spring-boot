@@ -6,14 +6,10 @@ import com.netty.spring.boot.core.server.entity.NettyFile;
 import com.netty.spring.boot.core.server.entity.NettyGeneralResponse;
 import com.netty.spring.boot.core.util.JsonUtils;
 import com.netty.spring.boot.core.util.NettyResponseUtil;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.*;
-import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 
 import java.io.*;
@@ -41,8 +37,7 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
     private HttpHeaders headers;
 
     @Override
-    protected void channelRead0(final ChannelHandlerContext ctx, final HttpObject httpObject)
-            throws Exception {
+    protected void channelRead0(final ChannelHandlerContext ctx, final HttpObject httpObject){
         if (httpObject instanceof HttpRequest) {
             request = (HttpRequest) httpObject;
             // 前置处理
@@ -50,6 +45,9 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
             if (nettyMethodDefinition != null && nettyBeanDefinition != null) {
                 httpDecoder = new HttpPostRequestDecoder(factory, request);
                 httpDecoder.setDiscardThreshold(0);
+            } else {
+                // 交给下一个channel来处理
+                ctx.fireChannelRead(httpObject);
             }
         }
         if (httpObject instanceof HttpContent) {
@@ -93,6 +91,16 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
                     NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                 }
             }
+        }
+        Boolean isUpload = false;
+        for(Class p : nettyMethodDefinition.getParameterTypesClass()){
+            if(p.getName().equals(NettyFile.class.getName())){
+                isUpload = true;
+            }
+        }
+        if(!isUpload){
+            nettyMethodDefinition = null;
+            nettyBeanDefinition = null;
         }
     }
 

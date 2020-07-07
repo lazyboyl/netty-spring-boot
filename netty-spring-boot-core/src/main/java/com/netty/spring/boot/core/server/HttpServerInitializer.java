@@ -1,10 +1,10 @@
 package com.netty.spring.boot.core.server;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -15,12 +15,13 @@ import io.netty.util.concurrent.EventExecutorGroup;
  * @since 2020/6/18
  * 类描述：
  */
-public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
+public class HttpServerInitializer extends ChannelInitializer<Channel> {
 
     @Override
-    protected void initChannel(SocketChannel channel) throws Exception {
+    protected void initChannel(Channel channel) throws Exception {
         EventExecutorGroup executors = new DefaultEventExecutorGroup(1);
         ChannelPipeline p = channel.pipeline();
+        p.addLast("compressor", new HttpContentCompressor());
         //HTTP 服务的解码器
         p.addLast(new HttpServerCodec(4096, 8192, 1024 * 1024 * 10));
         // 用于上传文件
