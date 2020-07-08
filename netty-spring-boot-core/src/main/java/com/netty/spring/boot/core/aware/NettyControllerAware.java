@@ -1,6 +1,7 @@
 package com.netty.spring.boot.core.aware;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.HttpHeaders;
 
 import java.util.Map;
 
@@ -21,16 +22,18 @@ public interface NettyControllerAware {
      * 功能描述： 响应某个方法的时候的前置调用
      * @param ctx
      * @param paramMap
+     * @param header
      * @return true：表示继续执行；false：表示直接结束
      */
-    Boolean beforeAction(ChannelHandlerContext ctx, Map<String, Object> paramMap);
+    Boolean beforeAction(ChannelHandlerContext ctx, Map<String, Object> paramMap, HttpHeaders header);
 
     /**
      * 功能描述： 响应某个方法的时候的后置调用
      * @param ctx
      * @param object
+     * @param header
      * @return true：表示继续执行；false：表示直接结束
      */
-    Boolean afterAction(ChannelHandlerContext ctx, Object object);
+    Boolean afterAction(ChannelHandlerContext ctx, Object object, HttpHeaders header);
 
 }

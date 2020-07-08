@@ -61,7 +61,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         try {
             paramMap = new RequestParser(req).parse();
             List<NettyBeanDefinition> nettyBeanDefinitions = NettyServer.nettyControllerAwareBeanFactory.getNettyBeanDefinitionList();
-            if (!doAwareInvoke(nettyBeanDefinitions, ctx, paramMap, "beforeAction")) {
+            if (!doAwareInvoke(nettyBeanDefinitions, ctx, paramMap, "beforeAction", req.headers())) {
                 return;
             }
             paramMap.put("headers", req.headers());
@@ -77,7 +77,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                     if (nettyBeanDefinition == null) {
                         NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                     } else {
-                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap,nettyBeanDefinitions);
+                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap, nettyBeanDefinitions, req.headers());
                     }
                 }
             }
@@ -92,14 +92,15 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
      * @param nettyBeanDefinitions 实例化的bean
      * @param ctx                  ctx对象
      * @param object               入参
+     * @param header               http请求的header信息
      * @param doAction             beforeAction：前置调用；afterAction：后置调用
      * @return
      */
-    protected Boolean doAwareInvoke(List<NettyBeanDefinition> nettyBeanDefinitions, ChannelHandlerContext ctx, Object object, String doAction) {
+    protected Boolean doAwareInvoke(List<NettyBeanDefinition> nettyBeanDefinitions, ChannelHandlerContext ctx, Object object, String doAction, HttpHeaders header) {
         for (NettyBeanDefinition nbd : nettyBeanDefinitions) {
             for (Map.Entry<String, NettyMethodDefinition> entry : nbd.getMethodMap().entrySet()) {
                 String[] k1s = entry.getKey().split("\\.");
-                Object[] obj = new Object[]{ctx, object};
+                Object[] obj = new Object[]{ctx, object, header};
                 if (k1s[k1s.length - 1].equals(doAction)) {
                     try {
                         Boolean isContinue = (Boolean) entry.getValue().getMethod().invoke(nbd.getObject(), obj);
@@ -124,10 +125,11 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
      * @param nettyMethodDefinition 方法对象
      * @param nettyBeanDefinition   类对象
      * @param paramMap              请求参数
+     * @param header                HTTP请求的hwader
      * @throws InvocationTargetException
      * @throws IllegalAccessException
      */
-    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap, List<NettyBeanDefinition> nettyBeanDefinitions) {
+    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap, List<NettyBeanDefinition> nettyBeanDefinitions, HttpHeaders header) {
         Object object = null;
         if (nettyMethodDefinition.getParameters().length == 0) {
             try {
@@ -161,7 +163,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                 e.printStackTrace();
             }
         }
-        doAwareInvoke(nettyBeanDefinitions, ctx, object, "afterAction");
+        doAwareInvoke(nettyBeanDefinitions, ctx, object, "afterAction", header);
         NettyResponseUtil.write(ctx, object, HttpResponseStatus.OK);
     }
 
