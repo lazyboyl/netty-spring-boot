@@ -4,6 +4,7 @@ import com.netty.spring.boot.core.aware.NettyControllerAware;
 import io.netty.channel.ChannelHandlerContext;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,8 +23,37 @@ public class NettyControllerAwareImpl implements NettyControllerAware {
     @Value("${te.abcLong}")
     private Long abcLong;
 
+    @Value("${te.abcDouble}")
+    private Double abcDouble;
+
+    @Value("${te.abcFloat}")
+    private Float abcFloat;
+
     @Value("${te.abcBoolean}")
     private Boolean abcBoolean;
+
+    @Value("${te.abcint}")
+    private Integer abcint;
+
+    @Value("${te.abclong}")
+    private Long abclong;
+
+    @Value("${te.abcdouble}")
+    private Double abcdouble;
+
+    @Value("${te.abcfloat}")
+    private Float abcfloat;
+
+    @Value("${te.abcboolean}")
+    private Boolean abcboolean;
+
+    @Value("${maps}")
+    private Map<String,String> maps;
+
+    @Value("${strList}")
+    private List<String> strList;
+
+
 
     @Override
     public int awareLevel() {

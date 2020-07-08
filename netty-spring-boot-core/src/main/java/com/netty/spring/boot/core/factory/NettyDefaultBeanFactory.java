@@ -3,7 +3,9 @@ package com.netty.spring.boot.core.factory;
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyFieldDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
+import com.netty.spring.boot.core.constant.ClassType;
 import com.netty.spring.boot.core.server.NettyServer;
+import com.netty.spring.boot.core.util.JsonUtils;
 import com.netty.spring.boot.core.util.NettyScanner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,11 +13,9 @@ import org.springframework.core.env.Environment;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * @author linzf
@@ -105,10 +105,10 @@ public class NettyDefaultBeanFactory implements NettySingletonBeanRegistry {
      * @param o                   实例化的对象
      * @param nettyBeanDefinition netty的bean的信息
      */
-    protected void registerNettyFieldDefinition(Class c, Object o, NettyBeanDefinition nettyBeanDefinition,Environment environment) throws IllegalAccessException {
+    protected void registerNettyFieldDefinition(Class c, Object o, NettyBeanDefinition nettyBeanDefinition, Environment environment) throws IllegalAccessException {
         Field[] sf = c.getDeclaredFields();
         Map<String, NettyFieldDefinition> fieldMap = new HashMap<>(sf.length);
-        String name = "";
+        String name;
         for (Field f : sf) {
             name = f.getName();
             if (fieldIsInit(name)) {
@@ -127,16 +127,8 @@ public class NettyDefaultBeanFactory implements NettySingletonBeanRegistry {
                 if (val == null) {
                     continue;
                 }
-                Value v = (Value) val;
-                String envVal = environment.getProperty(v.value().replace("${","").replace("}",""));
-                if(envVal!=null && !"".equals(envVal)){
-                    f.setAccessible(true);
-                    System.out.println("f.getType().getName()=>"  + f.getType().getName());
-                    switch (f.getType().getName()){
-                        case "1":
-                            break;
-                    }
-                }
+                // 注入@value注解的属性
+                doInjectValue(f, o, val, environment);
                 continue;
             }
             Object fieldObject = NettyServer.getBean(name);
@@ -146,6 +138,72 @@ public class NettyDefaultBeanFactory implements NettySingletonBeanRegistry {
             }
         }
         nettyBeanDefinition.setFieldMap(fieldMap);
+    }
+
+    /**
+     * 功能描述： 实现六大类型和基本类型的注入
+     *
+     * @param f           属性对象
+     * @param o           类对象
+     * @param val         需要注入的值
+     * @param environment 全局环境配置
+     * @throws IllegalAccessException
+     */
+    protected void doInjectValue(Field f, Object o, Annotation val, Environment environment) throws IllegalAccessException {
+        Value v = (Value) val;
+        String envVal = environment.getProperty(v.value().replace("${", "").replace("}", ""));
+        if (envVal != null && !"".equals(envVal)) {
+            f.setAccessible(true);
+            switch (ClassType.getByClassName(f.getType().getName())) {
+                case StringType:
+                    f.set(o, envVal);
+                    break;
+                case LongType:
+                    f.set(o, Long.parseLong(envVal));
+                    break;
+                case longType:
+                    f.set(o, Long.parseLong(envVal));
+                    break;
+                case BooleanType:
+                    if ("true".equals(envVal)) {
+                        f.set(o, true);
+                    } else {
+                        f.set(o, false);
+                    }
+                    break;
+                case booleanType:
+                    if ("true".equals(envVal)) {
+                        f.set(o, true);
+                    } else {
+                        f.set(o, false);
+                    }
+                    break;
+                case FloatType:
+                    f.set(o, Float.parseFloat(envVal));
+                    break;
+                case floatType:
+                    f.set(o, Float.parseFloat(envVal));
+                    break;
+                case DoubleType:
+                    f.set(o, Double.parseDouble(envVal));
+                    break;
+                case doubleType:
+                    f.set(o, Double.parseDouble(envVal));
+                    break;
+                case IntegerType:
+                    f.set(o, Integer.parseInt(envVal));
+                    break;
+                case intType:
+                    f.set(o, Integer.parseInt(envVal));
+                    break;
+                case MapType:
+                    f.set(o, JsonUtils.jsonToMap(envVal.replaceAll("\"", "").replaceAll("'", "\"")));
+                    break;
+                case ListType:
+                    f.set(o, Arrays.stream(envVal.split(",")).collect(Collectors.toList()));
+                    break;
+            }
+        }
     }
 
 

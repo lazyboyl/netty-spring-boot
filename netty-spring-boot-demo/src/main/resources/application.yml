@@ -2,4 +2,13 @@ te:
   abc: sdfsd
   abcInt: 123
   abcLong: 101111111111111
+  abcDouble: 456
+  abcFloat: 88
   abcBoolean: true
+  abcint: 1111
+  abclong: 101111111111111
+  abcdouble: 456
+  abcfloat: 88
+  abcboolean: true
+maps: "{'key1': 'value1', 'key2': 'value2'}"
+strList: topic1,topic2,topic3
