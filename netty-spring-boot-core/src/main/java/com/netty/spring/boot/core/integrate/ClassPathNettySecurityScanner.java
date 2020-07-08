@@ -36,11 +36,9 @@ public class ClassPathNettySecurityScanner extends ClassPathBeanDefinitionScanne
     @Override
     public Set<BeanDefinitionHolder> doScan(String... basePackages) {
         Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
-
         if (beanDefinitions.isEmpty()) {
             logger.warn("No DgbSecurity Spring Componet was found in '" + Arrays.toString(basePackages) + "' package. Please check your configuration.");
         }
-
         return beanDefinitions;
     }
 

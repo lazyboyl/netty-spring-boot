@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.*;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
+import java.util.List;
 import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpUtil.is100ContinueExpected;
@@ -55,30 +56,65 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
      * @throws IllegalAccessException
      * @throws IOException
      */
-    protected void doNettyController(ChannelHandlerContext ctx, FullHttpRequest req, String uri)  {
+    protected void doNettyController(ChannelHandlerContext ctx, FullHttpRequest req, String uri) {
         Map<String, Object> paramMap = null;
         try {
             paramMap = new RequestParser(req).parse();
-            paramMap.put("headers",req.headers());
+            List<NettyBeanDefinition> nettyBeanDefinitions = NettyServer.nettyControllerAwareBeanFactory.getNettyBeanDefinitionList();
+            if (!doAwareInvoke(nettyBeanDefinitions, ctx, paramMap, "beforeAction")) {
+                return;
+            }
+            paramMap.put("headers", req.headers());
             // 根据uri获取相应的method的对象
-            NettyMethodDefinition nettyMethodDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
+            NettyMethodDefinition nettyMethodDefinition = NettyServer.nettyControllerBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
             if (nettyMethodDefinition == null) {
                 NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
             } else {
                 if (!"".equals(nettyMethodDefinition.getNettyRequestMethod()) && !req.method().name().equals(nettyMethodDefinition.getNettyRequestMethod())) {
                     NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.METHOD_NOT_ALLOWED.code(), "请求方式错误！"), HttpResponseStatus.NOT_FOUND);
                 } else {
-                    NettyBeanDefinition nettyBeanDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyBeanDefinition(nettyMethodDefinition.getBeanName());
+                    NettyBeanDefinition nettyBeanDefinition = NettyServer.nettyControllerBeanFactory.getNettyBeanDefinition(nettyMethodDefinition.getBeanName());
                     if (nettyBeanDefinition == null) {
                         NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                     } else {
-                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap);
+                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap,nettyBeanDefinitions);
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 功能描述： 前置/后置调用逻辑
+     *
+     * @param nettyBeanDefinitions 实例化的bean
+     * @param ctx                  ctx对象
+     * @param object               入参
+     * @param doAction             beforeAction：前置调用；afterAction：后置调用
+     * @return
+     */
+    protected Boolean doAwareInvoke(List<NettyBeanDefinition> nettyBeanDefinitions, ChannelHandlerContext ctx, Object object, String doAction) {
+        for (NettyBeanDefinition nbd : nettyBeanDefinitions) {
+            for (Map.Entry<String, NettyMethodDefinition> entry : nbd.getMethodMap().entrySet()) {
+                String[] k1s = entry.getKey().split("\\.");
+                Object[] obj = new Object[]{ctx, object};
+                if (k1s[k1s.length - 1].equals(doAction)) {
+                    try {
+                        Boolean isContinue = (Boolean) entry.getValue().getMethod().invoke(nbd.getObject(), obj);
+                        if (!isContinue) {
+                            return false;
+                        }
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -91,7 +127,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
      * @throws InvocationTargetException
      * @throws IllegalAccessException
      */
-    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap) {
+    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap, List<NettyBeanDefinition> nettyBeanDefinitions) {
         Object object = null;
         if (nettyMethodDefinition.getParameters().length == 0) {
             try {
@@ -110,7 +146,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                 if (isMyClass(parameterTypesClass[i])) {
                     obj[i] = paramMap.get(p.getName());
                 } else {
-                    if(parameterTypesClass[i].getName().equals(HttpHeaders.class.getName())){
+                    if (parameterTypesClass[i].getName().equals(HttpHeaders.class.getName())) {
                         obj[i] = paramMap.get("headers");
                     } else {
                         obj[i] = JsonUtils.map2object(paramMap, parameterTypesClass[i]);
@@ -125,6 +161,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                 e.printStackTrace();
             }
         }
+        doAwareInvoke(nettyBeanDefinitions, ctx, object, "afterAction");
         NettyResponseUtil.write(ctx, object, HttpResponseStatus.OK);
     }
 

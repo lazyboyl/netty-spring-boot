@@ -79,14 +79,14 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
         headers = request.headers();
         String uri = request.uri().split("\\?")[0];
         // 根据uri获取相应的method的对象
-        nettyMethodDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
+        nettyMethodDefinition = NettyServer.nettyControllerBeanFactory.getNettyMethodDefinition(uri.substring(1) + "/");
         if (nettyMethodDefinition == null) {
             NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
         } else {
             if (!"".equals(nettyMethodDefinition.getNettyRequestMethod()) && !request.method().name().equals(nettyMethodDefinition.getNettyRequestMethod())) {
                 NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.METHOD_NOT_ALLOWED.code(), "请求方式错误！"), HttpResponseStatus.NOT_FOUND);
             } else {
-                nettyBeanDefinition = NettyServer.nettyDefaultListableBeanFactory.getNettyBeanDefinition(nettyMethodDefinition.getBeanName());
+                nettyBeanDefinition = NettyServer.nettyControllerBeanFactory.getNettyBeanDefinition(nettyMethodDefinition.getBeanName());
                 if (nettyBeanDefinition == null) {
                     NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                 }

@@ -26,6 +26,30 @@ public class NettyScanner {
 
 
     /**
+     * 功能描述： 找到所有实现了当前接口的类
+     *
+     * @param interfaceClass 接口类
+     * @param <A>
+     * @return
+     * @throws Exception
+     */
+    public <A extends Annotation> Set<Class<?>> getInterfaceClasses(Class interfaceClass){
+        Set<Class<?>> interfaces = new HashSet<>();
+        if (classes != null && classes.size() > 0) {
+            for (Class<?> cls : classes) {
+                Class [] is = cls.getInterfaces();
+                for(Class i:is){
+                    if(i.getName().equals(interfaceClass.getName())){
+                        interfaces.add(cls);
+                    }
+                }
+            }
+        }
+        return interfaces;
+    }
+
+
+    /**
      * 功能描述： 找到被某个注解所注解的类
      *
      * @param annotationClass 注解类
@@ -33,7 +57,7 @@ public class NettyScanner {
      * @return
      * @throws Exception
      */
-    public <A extends Annotation> Set<Class<?>> getAnnotationClasses(Class<A> annotationClass) throws Exception {
+    public <A extends Annotation> Set<Class<?>> getAnnotationClasses(Class annotationClass) {
         //找用了annotationClass注解的类
         Set<Class<?>> controllers = new HashSet<>();
         if (classes != null && classes.size() > 0) {

@@ -40,6 +40,19 @@ public class NettyBeanDefinition {
      */
     private String [] mappingPath;
 
+    /**
+     * 当前执行的级别
+     */
+    private Integer level;
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
     public String[] getMappingPath() {
         return mappingPath;
     }

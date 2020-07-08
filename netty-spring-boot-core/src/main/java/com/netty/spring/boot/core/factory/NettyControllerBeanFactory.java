@@ -3,82 +3,27 @@ package com.netty.spring.boot.core.factory;
 import com.netty.spring.boot.core.annotation.NettyRequestMapping;
 import com.netty.spring.boot.core.annotation.NettyRequestMethod;
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
-import com.netty.spring.boot.core.beans.NettyFieldDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
-import com.netty.spring.boot.core.factory.impl.DefaultNettySingletonBeanRegistry;
-import com.netty.spring.boot.core.util.SpringConfigTool;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author linzf
- * @since 2020/6/29
+ * @since 2020/7/7
  * 类描述：
  */
-public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRegistry {
+public class NettyControllerBeanFactory extends NettyDefaultBeanFactory {
 
-    /**
-     * 定义用于存放netty的bean的map集合
-     */
-    private final Map<String, NettyBeanDefinition> nettyBeanDefinitionMap = new ConcurrentHashMap<>(256);
-
-    /**
-     * 定义相应的地址的映射，/dict/addDict 对应相应的类中的相应的方法
-     */
-    private final Map<String, NettyMethodDefinition> nettyMethodDefinitionMap = new ConcurrentHashMap<>(256);
-
-    /**
-     * 定义当前已经初始化的bean的名称
-     */
-    private final Set<String> nettyBeanDefinitionSet = new LinkedHashSet<>();
-
-    /**
-     * 定义当前已经初始化的接口的名称
-     */
-    private final Set<String> nettyMethodDefinitionSet = new LinkedHashSet<>();
-
-    /**
-     * 定义当前已经初始化的类的属性使用类的全称加上类的属性名称
-     */
-    private final Set<String> nettyFieldDefinitionSet = new LinkedHashSet<>();
-
-    /**
-     * 功能描述： 根据bean的名称来获取bean信息
-     *
-     * @param name bean的全称
-     * @return
-     */
-    public NettyBeanDefinition getNettyBeanDefinition(String name) {
-        return nettyBeanDefinitionMap.get(name);
+    private NettyControllerBeanFactory(){
+        super();
     }
 
-    /**
-     * 功能描述： 根据uri来获取响应的method
-     *
-     * @param uri 响应地址
-     * @return
-     */
-    public NettyMethodDefinition getNettyMethodDefinition(String uri) {
-        return nettyMethodDefinitionMap.get(uri);
-    }
-
-    /**
-     * 功能描述：将class的注册到系统中
-     *
-     * @param c 类的路径
-     */
-    public void registerBean(Class c) throws InstantiationException, IllegalAccessException {
-        if (!beanIsInit(c.getName())) {
-            registerNettyBeanDefinition(c);
-        }
+    public static NettyControllerBeanFactory getInstance(){
+        return new NettyControllerBeanFactory();
     }
 
     /**
@@ -86,7 +31,8 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
      *
      * @param c 需要进行处理的类的对象
      */
-    protected void registerNettyBeanDefinition(Class c) throws IllegalAccessException, InstantiationException {
+    @Override
+    protected void registerNettyBeanDefinition(Class c, Environment environment) throws IllegalAccessException, InstantiationException {
         NettyBeanDefinition nettyBeanDefinition = new NettyBeanDefinition();
         nettyBeanDefinition.setClassName(c.getName());
         // 获取类上的注解的集合
@@ -97,11 +43,11 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
         // 初始化类上的方法
         registerNettyMethodDefinition(c, nettyBeanDefinition);
         // 初始化类上的属性
-        registerNettyFieldDefinition(c, o, nettyBeanDefinition);
+        registerNettyFieldDefinition(c, o, nettyBeanDefinition,environment);
         // 实例化类
         nettyBeanDefinition.setObject(o);
-        nettyBeanDefinitionSet.add(c.getName());
-        nettyBeanDefinitionMap.put(c.getName(), nettyBeanDefinition);
+        nettyBeanDefinitionSetAdd(c.getName());
+        nettyBeanDefinitionMapPut(c.getName(), nettyBeanDefinition);
     }
 
     /**
@@ -192,8 +138,8 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
                     if (methodIsInit(s + p)) {
                         throw new RuntimeException(c.getName() + "类的" + nettyMethodDefinition.getMethod().getName() + "方法上存在重复定义的响应地址！");
                     }
-                    nettyMethodDefinitionSet.add(s + p);
-                    nettyMethodDefinitionMap.put(s + p, nettyMethodDefinition);
+                    nettyMethodDefinitionSetAdd(s + p);
+                    nettyMethodDefinitionMapPut(s + p, nettyMethodDefinition);
                 }
             }
         } else {
@@ -201,47 +147,10 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
                 if (methodIsInit(p)) {
                     throw new RuntimeException(c.getName() + "类的" + nettyMethodDefinition.getMethod().getName() + "方法上存在重复定义的响应地址！");
                 }
-                nettyMethodDefinitionSet.add(p);
-                nettyMethodDefinitionMap.put(p, nettyMethodDefinition);
+                nettyMethodDefinitionSetAdd(p);
+                nettyMethodDefinitionMapPut(p, nettyMethodDefinition);
             }
         }
-    }
-
-
-    /**
-     * 功能描述：注册对象的属性信息
-     *
-     * @param c                   class对象
-     * @param o                   实例化的对象
-     * @param nettyBeanDefinition netty的bean的信息
-     */
-    protected void registerNettyFieldDefinition(Class c, Object o, NettyBeanDefinition nettyBeanDefinition) throws IllegalAccessException {
-        Field[] sf = c.getDeclaredFields();
-        Map<String, NettyFieldDefinition> fieldMap = new HashMap<>(sf.length);
-        String name = "";
-        for (Field f : sf) {
-            name = f.getName();
-            if (fieldIsInit(name)) {
-                continue;
-            }
-            nettyFieldDefinitionSet.add(c.getName() + "." + name);
-            NettyFieldDefinition nettyFieldDefinition = new NettyFieldDefinition();
-            nettyFieldDefinition.setFieldAnnotation(f.getAnnotations());
-            nettyFieldDefinition.setFieldName(name);
-            nettyFieldDefinition.setFieldType(f.getType());
-            nettyFieldDefinition.setF(f);
-            fieldMap.put(f.getName(), nettyFieldDefinition);
-            Annotation a = f.getAnnotation(Autowired.class);
-            if (a == null) {
-                continue;
-            }
-            Object fieldObject = SpringConfigTool.getBean(name);
-            if (fieldObject != null) {
-                f.setAccessible(true);
-                f.set(o, fieldObject);
-            }
-        }
-        nettyBeanDefinition.setFieldMap(fieldMap);
     }
 
     /**
@@ -259,36 +168,5 @@ public class NettyDefaultListableBeanFactory extends DefaultNettySingletonBeanRe
             }
         }
     }
-
-    /**
-     * 功能描述： 判断当前的bean是否已经初始化过
-     *
-     * @param name bean的名称
-     * @return true:已经存在；false：不存在
-     */
-    protected Boolean beanIsInit(String name) {
-        return nettyBeanDefinitionSet.contains(name);
-    }
-
-    /**
-     * 功能描述： 判断当前响应的方法是否已经存在
-     *
-     * @param url 响应的url
-     * @return true:已经存在；false：不存在
-     */
-    protected Boolean methodIsInit(String url) {
-        return nettyMethodDefinitionSet.contains(url);
-    }
-
-    /**
-     * 功能描述： 判断当前的属性是否已经初始化过了
-     *
-     * @param fieldName 属性名称
-     * @return true:已经初始化过；false：未初始化
-     */
-    protected Boolean fieldIsInit(String fieldName) {
-        return nettyFieldDefinitionSet.contains(fieldName);
-    }
-
 
 }
