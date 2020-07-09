@@ -2,6 +2,7 @@ package com.netty.spring.boot.core.server;
 
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
+import com.netty.spring.boot.core.server.entity.NettyFile;
 import com.netty.spring.boot.core.server.entity.RequestParser;
 import com.netty.spring.boot.core.server.entity.NettyGeneralResponse;
 import com.netty.spring.boot.core.util.JsonUtils;
@@ -9,10 +10,15 @@ import com.netty.spring.boot.core.util.NettyResponseUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.multipart.FileUpload;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
+import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.handler.codec.http.multipart.MixedFileUpload;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +38,14 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
+        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(req);
+        List<InterfaceHttpData> parmList = decoder.getBodyHttpDatas();
+        for (InterfaceHttpData parm : parmList) {
+            if (parm.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
+                FileUpload fileUpload = (FileUpload) parm;
+                System.out.println(fileUpload.isCompleted()+"------");
+            }
+        }
         //100 Continue
         if (is100ContinueExpected(req)) {
             ctx.write(new DefaultFullHttpResponse(
@@ -60,6 +74,10 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         Map<String, Object> paramMap = null;
         try {
             paramMap = new RequestParser(req).parse();
+            MixedFileUpload mfu = (MixedFileUpload) paramMap.get("file");
+            if (mfu == null || !mfu.isCompleted()) {
+                System.out.println("----");
+            }
             List<NettyBeanDefinition> nettyBeanDefinitions = NettyServer.nettyControllerAwareBeanFactory.getNettyBeanDefinitionList();
             if (!doAwareInvoke(nettyBeanDefinitions, ctx, paramMap, "beforeAction", req.headers())) {
                 return;
@@ -77,7 +95,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                     if (nettyBeanDefinition == null) {
                         NettyResponseUtil.write(ctx, new NettyGeneralResponse(HttpResponseStatus.NOT_FOUND.code(), "无此方法！"), HttpResponseStatus.NOT_FOUND);
                     } else {
-                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap, nettyBeanDefinitions, req.headers());
+                        invokeMethod(ctx, nettyMethodDefinition, nettyBeanDefinition, paramMap, nettyBeanDefinitions, req.headers(), req);
                     }
                 }
             }
@@ -126,10 +144,11 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
      * @param nettyBeanDefinition   类对象
      * @param paramMap              请求参数
      * @param header                HTTP请求的hwader
+     * @param req                   请求对象
      * @throws InvocationTargetException
      * @throws IllegalAccessException
      */
-    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap, List<NettyBeanDefinition> nettyBeanDefinitions, HttpHeaders header) {
+    protected void invokeMethod(ChannelHandlerContext ctx, NettyMethodDefinition nettyMethodDefinition, NettyBeanDefinition nettyBeanDefinition, Map<String, Object> paramMap, List<NettyBeanDefinition> nettyBeanDefinitions, HttpHeaders header, FullHttpRequest req) {
         Object object = null;
         if (nettyMethodDefinition.getParameters().length == 0) {
             try {
@@ -143,6 +162,8 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
             Parameter[] ps = nettyMethodDefinition.getParameters();
             Object[] obj = new Object[ps.length];
             Class[] parameterTypesClass = nettyMethodDefinition.getParameterTypesClass();
+            NettyFile nettyFile = new NettyFile();
+            Map<String, Object> paramMapNew = paramMapSax(paramMap,nettyFile);
             for (int i = 0; i < ps.length; i++) {
                 Parameter p = ps[i];
                 if (isMyClass(parameterTypesClass[i])) {
@@ -150,8 +171,14 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
                 } else {
                     if (parameterTypesClass[i].getName().equals(HttpHeaders.class.getName())) {
                         obj[i] = paramMap.get("headers");
+                    } else if (parameterTypesClass[i].getName().equals(ChannelHandlerContext.class.getName())) {
+                        obj[i] = ctx;
+                    } else if (parameterTypesClass[i].getName().equals(FullHttpRequest.class.getName())) {
+                        obj[i] = req;
+                    } else if (parameterTypesClass[i].getName().equals(NettyFile.class.getName())) {
+                        obj[i] = nettyFile;
                     } else {
-                        obj[i] = JsonUtils.map2object(paramMap, parameterTypesClass[i]);
+                        obj[i] = JsonUtils.map2object(paramMapNew, parameterTypesClass[i]);
                     }
                 }
             }
@@ -167,6 +194,17 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         NettyResponseUtil.write(ctx, object, HttpResponseStatus.OK);
     }
 
+    protected Map<String, Object> paramMapSax(Map<String, Object> paramMap, NettyFile nettyFile) {
+        Map<String, Object> paramMapNew = new HashMap<>();
+        for (Map.Entry<String, Object> entry : paramMap.entrySet()) {
+            if (entry.getValue() instanceof FileUpload) {
+                nettyFile.setFileUpload((FileUpload)entry.getValue());
+            } else {
+                paramMapNew.put(entry.getKey(),entry.getValue());
+            }
+        }
+        return paramMapNew;
+    }
 
     /**
      * 功能描述： 判断当前的class是否是自己定义的class

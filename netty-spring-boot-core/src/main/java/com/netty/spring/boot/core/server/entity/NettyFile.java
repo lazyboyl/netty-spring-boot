@@ -24,6 +24,13 @@ public class NettyFile {
         this.headers = headers;
     }
 
+    public NettyFile(FileUpload fileUpload) {
+        this.fileUpload = fileUpload;
+        if(fileUpload!=null){
+            this.fileName = fileUpload.getFilename();
+        }
+    }
+
     /**
      * 上传的文件的存储对象
      */
@@ -58,6 +65,9 @@ public class NettyFile {
 
     public void setFileUpload(FileUpload fileUpload) {
         this.fileUpload = fileUpload;
+        if(fileUpload!=null){
+            this.fileName = fileUpload.getFilename();
+        }
     }
 
     public String getFileName() {
@@ -73,36 +83,7 @@ public class NettyFile {
     }
 
     public void transferTo(String path) throws IOException {
-        this.inputStream = new FileInputStream(fileUpload.getFile());
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(path + fileUpload.getFilename());
-            byte[] b = new byte[1024];
-            // 写入数据
-            while ((inputStream.read(b)) != -1) {
-                fos.write(b);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
-
-
+        fileUpload.renameTo(new File(path + fileName));
     }
 
 

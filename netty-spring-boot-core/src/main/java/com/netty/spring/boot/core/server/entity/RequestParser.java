@@ -5,10 +5,9 @@ import com.netty.spring.boot.core.util.JsonUtils;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.http.multipart.Attribute;
-import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
-import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.handler.codec.http.multipart.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -59,8 +58,13 @@ public class RequestParser {
 //                decoder.offer(fullReq);
                 List<InterfaceHttpData> parmList = decoder.getBodyHttpDatas();
                 for (InterfaceHttpData parm : parmList) {
-                    Attribute data = (Attribute) parm;
-                    parmMap.put(data.getName(), data.getValue());
+                    if (parm.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
+                        FileUpload fileUpload = (FileUpload) parm;
+                        parmMap.put(fileUpload.getName(), fileUpload);
+                    } else {
+                        Attribute data = (Attribute) parm;
+                        parmMap.put(data.getName(), data.getValue());
+                    }
                 }
             }
         }

@@ -16,8 +16,8 @@ import java.io.IOException;
 public class UploadController {
 
     @NettyRequestMapping(path = "upload",  method = NettyRequestMethod.POST)
-    public String upload(NettyFile nettyFile)  {
-        System.out.println("----");
+    public String upload(NettyFile nettyFile,String fileName)  {
+        System.out.println("----" + fileName);
         try{
             nettyFile.transferTo("f:\\");
         }catch (Exception e){
