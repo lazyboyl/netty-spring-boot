@@ -1,12 +1,10 @@
 package com.netty.spring.boot.core.server.channel;
 
+import com.netty.spring.boot.core.server.channel.entity.HttpUploadEntity;
 import com.netty.spring.boot.core.server.channel.entity.WebSocketRequestEntity;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 /**
@@ -23,9 +21,11 @@ public class DispatchHandler extends SimpleChannelInboundHandler<Object> {
             //判断是否为websocket握手请求
             if(isWebSocketHandShake(request)) {
                 ctx.fireChannelRead(new WebSocketRequestEntity(request));
-            } else {
+            } else{
                 ctx.fireChannelRead(request);
             }
+        } else if(msg instanceof HttpObject) {
+            ctx.fireChannelRead(new HttpUploadEntity((HttpObject)msg));
         } else {
             WebSocketFrame frame = (WebSocketFrame) msg;
             ctx.fireChannelRead(new WebSocketRequestEntity(frame));
