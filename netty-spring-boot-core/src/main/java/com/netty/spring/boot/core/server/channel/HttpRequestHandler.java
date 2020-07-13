@@ -1,7 +1,8 @@
-package com.netty.spring.boot.core.server;
+package com.netty.spring.boot.core.server.channel;
 
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
+import com.netty.spring.boot.core.server.NettyServer;
 import com.netty.spring.boot.core.server.entity.NettyFile;
 import com.netty.spring.boot.core.server.entity.RequestParser;
 import com.netty.spring.boot.core.server.entity.NettyGeneralResponse;
@@ -11,8 +12,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.FileUpload;
-import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
-import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.MixedFileUpload;
 
 import java.io.IOException;
@@ -38,14 +37,6 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
-        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(req);
-        List<InterfaceHttpData> parmList = decoder.getBodyHttpDatas();
-        for (InterfaceHttpData parm : parmList) {
-            if (parm.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
-                FileUpload fileUpload = (FileUpload) parm;
-                System.out.println(fileUpload.isCompleted()+"------");
-            }
-        }
         //100 Continue
         if (is100ContinueExpected(req)) {
             ctx.write(new DefaultFullHttpResponse(

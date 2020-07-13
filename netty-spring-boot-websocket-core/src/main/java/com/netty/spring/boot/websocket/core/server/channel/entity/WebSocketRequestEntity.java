@@ -1,4 +1,4 @@
-package com.netty.spring.boot.core.server.channel.entity;
+package com.netty.spring.boot.websocket.core.server.channel.entity;
 
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;

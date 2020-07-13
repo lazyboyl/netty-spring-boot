@@ -1,8 +1,8 @@
-package com.netty.spring.boot.core.server;
+package com.netty.spring.boot.core.server.channel;
 
 import com.netty.spring.boot.core.beans.NettyBeanDefinition;
 import com.netty.spring.boot.core.beans.NettyMethodDefinition;
-import com.netty.spring.boot.core.server.channel.entity.HttpUploadEntity;
+import com.netty.spring.boot.core.server.NettyServer;
 import com.netty.spring.boot.core.server.entity.NettyFile;
 import com.netty.spring.boot.core.server.entity.NettyGeneralResponse;
 import com.netty.spring.boot.core.util.JsonUtils;
@@ -24,7 +24,7 @@ import java.util.Map;
  * @since 2020/7/1
  * 类描述：
  */
-public class HttUploadHandler extends SimpleChannelInboundHandler<HttpUploadEntity> {
+public class HttUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     public HttUploadHandler() {
         super(false);
@@ -38,9 +38,9 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpUploadEnti
     private HttpHeaders headers;
 
     @Override
-    protected void channelRead0(final ChannelHandlerContext ctx, final HttpUploadEntity httpObject){
-        if (httpObject.getObj() instanceof HttpRequest) {
-            request = (HttpRequest) httpObject.getObj();
+    protected void channelRead0(final ChannelHandlerContext ctx, final HttpObject httpObject){
+        if (httpObject instanceof HttpRequest) {
+            request = (HttpRequest) httpObject;
             // 前置处理
             doNettyUploadBefore(request, ctx);
             if (nettyMethodDefinition != null && nettyBeanDefinition != null) {
@@ -48,12 +48,12 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpUploadEnti
                 httpDecoder.setDiscardThreshold(0);
             } else {
                 // 交给下一个channel来处理
-                ctx.fireChannelRead(httpObject.getObj());
+                ctx.fireChannelRead(httpObject);
             }
         }
-        if (httpObject.getObj() instanceof HttpContent) {
+        if (httpObject instanceof HttpContent) {
             if (httpDecoder != null) {
-                final HttpContent chunk = (HttpContent) httpObject.getObj();
+                final HttpContent chunk = (HttpContent) httpObject;
                 httpDecoder.offer(chunk);
                 if (chunk instanceof LastHttpContent) {
                     writeChunk(ctx);
@@ -64,7 +64,7 @@ public class HttUploadHandler extends SimpleChannelInboundHandler<HttpUploadEnti
                 // 说明数据还没有下载完成，因此需要再次释放当前通道下载数据
                 ReferenceCountUtil.release(httpObject);
             } else {
-                ctx.fireChannelRead(httpObject.getObj());
+                ctx.fireChannelRead(httpObject);
             }
         }
 
